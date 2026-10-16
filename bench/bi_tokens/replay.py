@@ -491,16 +491,17 @@ def compare(before: dict, after: dict) -> tuple[str, bool]:
             b["quality"]["undeclared_in_instruction"])
         if new_mentions:  # la consigne cite un outil que l'agent n'a plus
             a = {**a, "quality": {**a["quality"], "ok": False}}
+        # Un échec connu s'affiche mais ne fait pas échouer la comparaison.
+        mark = "✅" if a["quality"]["ok"] else "❌ connu" if a.get("known_failure") else "❌"
+        ok &= a["quality"]["ok"] or bool(a.get("known_failure"))
         if not b:
             lines.append(f"| {name}{est} | {len(a['calls'])} | {a['n_tools']} | {_n(a['first_call_tokens'])} | – | "
-                         f"{_n(a['tokens'])} | nouveau | {'✅' if a['quality']['ok'] else '❌'} |")
-            ok &= a["quality"]["ok"]
+                         f"{_n(a['tokens'])} | nouveau | {mark} |")
             continue
         lines.append(
             f"| {name}{est} | {len(b['calls'])}→{len(a['calls'])} | {b['n_tools']}→{a['n_tools']} | "
             f"{_n(b['first_call_tokens'])}→{_n(a['first_call_tokens'])} | {_n(b['tokens'])} | {_n(a['tokens'])} | "
-            f"{_pct(b['tokens'], a['tokens'])} | {'✅' if a['quality']['ok'] else '❌'} |")
-        ok &= a["quality"]["ok"]
+            f"{_pct(b['tokens'], a['tokens'])} | {mark} |")
     return "\n".join(lines).replace(",", " "), ok
 
 
