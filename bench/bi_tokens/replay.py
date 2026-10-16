@@ -391,10 +391,13 @@ def run_all(estimates: bool = False) -> dict:
     from apowerb.configs.settings import get_settings
 
     logging.disable(logging.CRITICAL)  # les journaux de to_agent noieraient le tableau
-    saved = {k: os.environ.get(k) for k in ("STORAGE_MODE", "UPLOADS_DIR")}
+    # Réglages changés sur le singleton puis rendus : vider le cache de
+    # get_settings laisserait aux autres tests un objet différent de celui
+    # que leurs modules ont importé.
+    settings = get_settings()
+    saved = {k: getattr(settings, k) for k in ("storage_mode", "uploads_dir")}
     uploads = Path(tempfile.mkdtemp(prefix="bi-bench-uploads-"))
-    os.environ.update(STORAGE_MODE=os.environ.get("STORAGE_MODE") or "local", UPLOADS_DIR=str(uploads))
-    get_settings.cache_clear()
+    settings.storage_mode, settings.uploads_dir = "local", str(uploads)
     write_orders_csv(uploads / AGENT / "online_store_orders.csv")
     try:
         live = install_live_tools()
@@ -403,11 +406,7 @@ def run_all(estimates: bool = False) -> dict:
     finally:
         shutil.rmtree(uploads, ignore_errors=True)
         for k, v in saved.items():
-            if v is None:
-                os.environ.pop(k, None)
-            else:
-                os.environ[k] = v
-        get_settings.cache_clear()
+            setattr(settings, k, v)
         logging.disable(logging.NOTSET)
 
 
