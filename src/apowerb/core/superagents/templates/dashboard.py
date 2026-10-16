@@ -197,6 +197,8 @@ DASHBOARD_TEMPLATES = [
         "suppressed_auto_tools": BI_SUPPRESSED_AUTO_TOOLS,
         # read_uploaded_file : en-tête + 20 lignes + nombre de lignes d'un gros CSV
         "tabular_file_preview_rows": 20,
+        # historique : gros résultats d'outils des tours précédents raccourcis
+        "compact_previous_turn_results": True,
         "memory_enabled": True,
         "artifacts_enabled": True,
         "guardrails_config": None,

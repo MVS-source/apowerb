@@ -816,7 +816,12 @@ def to_agent(agent_name: str) -> LlmAgent:
                 return _trunc(callback_context=callback_context, llm_request=llm_request)
             before_model_cb = _truncate_only
 
-        strip_cb = create_strip_large_payloads_callback(agent_name)
+        strip_cb = create_strip_large_payloads_callback(
+            agent_name,
+            compact_previous_turns=bool(
+                _template_setting(superagent_template_id, "compact_previous_turn_results", False)
+            ),
+        )
         if before_model_cb:
             existing_cb2 = before_model_cb
 

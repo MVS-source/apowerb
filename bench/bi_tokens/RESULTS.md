@@ -56,3 +56,19 @@ Avant `d4` (dd43c4d) → après `d5` (4e4fe32)
 | question_targeted *(estim.)* | 3→3 | 26→26 | 13 959→14 031 | 51 853 | 52 069 | +0.4 % | ✅ |
 
 Coût fixe : +72 tokens par appel (déclaration). Gain si le modèle s'en sert : question 65 981 → 51 094 (−22,6 %), mais seulement −1,9 % face à `component_ids` par canal (question_targeted) : à juger au mode réel.
+
+## D2 — gros résultats d'outils des tours précédents raccourcis (agents BI)
+
+Avant `d5` (4e4fe32) → après `d2` (385abd4)
+
+| Scénario | Appels | Outils | 1er appel (tok) | Total avant | Total après | Δ | Qualité |
+|---|---|---|---|---|---|---|---|
+| creation | 5→5 | 26→26 | 13 988→13 988 | 88 875 | 88 875 | +0.0 % | ✅ |
+| dashboard_chat | 5→5 | 26→26 | 14 031→14 031 | 135 767 | 100 271 | -26.1 % | ✅ |
+| forecast | 4→4 | 26→26 | 13 978→13 978 | 61 452 | 61 452 | +0.0 % | ✅ |
+| multi_turn | 10→10 | 26→26 | 13 988→13 988 | 255 702 | 200 883 | -21.4 % | ✅ |
+| question | 3→3 | 26→26 | 14 031→14 031 | 65 981 | 65 981 | +0.0 % | ✅ |
+| question_grouped *(estim.)* | 3→3 | 26→26 | 14 031→14 031 | 51 094 | 51 094 | +0.0 % | ✅ |
+| question_targeted *(estim.)* | 3→3 | 26→26 | 14 031→14 031 | 52 069 | 52 069 | +0.0 % | ✅ |
+
+Contre-preuve : compacter aussi le tour en cours fait échouer facts/grounded sur 4 scénarios.
