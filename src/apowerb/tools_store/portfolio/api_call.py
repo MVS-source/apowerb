@@ -13,6 +13,7 @@ from apowerb.schema.forecast_schema import (
     MAX_DATA_ROWS,
     MAX_HORIZON,
     ForecastRequestSchema,
+    aggregate_forecast_rows,
 )
 from apowerb.tools_store.portfolio.bi_datasets import (
     _agent_owner,
@@ -373,6 +374,12 @@ def _forecast_raw(
             ),
         }
 
+    # Grain transaction (plusieurs lignes par date) : th2forecast refuserait
+    # la série, on somme la mesure par période et on le dit dans warnings.
+    data_rows, aggregation_note = aggregate_forecast_rows(
+        data_rows, date_var, target_var, group_var, frequency,
+    )
+
     try:
         request = ForecastRequestSchema(
             data=data_rows,
@@ -419,4 +426,6 @@ def _forecast_raw(
     except Th2forecastUnavailable as exc:
         return {"status": "error", "message": f"Service de prévision indisponible : {exc}"}
 
+    if aggregation_note:
+        response = {**response, "warnings": [*(response.get("warnings") or []), aggregation_note]}
     return {"status": "success", **response}
