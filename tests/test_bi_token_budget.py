@@ -1,9 +1,10 @@
-"""Budget de taille des requêtes au modèle sur la conversation BI de la démo.
+"""Budget de taille des requêtes au modèle sur les conversations BI du banc.
 
-Rejoue bench/bi_tokens (modèle scripté, vrai agent, vrais outils BI) et borne
-l'historique envoyé : une réponse d'outil BI qui grossit fait échouer ce test au
-lieu de renchérir chaque conversation en silence. Les déclarations d'outils,
-communes à tous les agents de chat, ne sont pas bornées ici.
+Rejoue bench/bi_tokens (modèle scripté, vrai agent, vrais outils BI) : les
+contrôles qualité du banc doivent rester verts, et l'historique envoyé reste
+borné : une réponse d'outil BI qui grossit fait échouer ce test au lieu de
+renchérir chaque conversation en silence. Les déclarations d'outils, communes
+à tous les agents de chat, ne sont pas bornées ici.
 """
 import asyncio
 import json
@@ -61,3 +62,14 @@ def test_targeted_queries_still_carry_the_roas_of_every_channel(replay):
         assert [c["title"] for c in res["components"]] == ["ROAS"]
         seen[canal] = res["components"][0]["value"]
     assert seen == {"Email": "32.8", "Google Ads": "3.6", "Instagram": "3.0"}
+
+
+def test_every_bench_scenario_keeps_its_quality_checks_green(replay):
+    """Outils appelés toujours déclarés, outils LIVE sans erreur, chiffres et
+    liens de chaque réponse finale encore visibles par le modèle."""
+    module, _ = replay
+    report = module.run_all(estimates=True)
+    assert {"creation", "question", "dashboard_chat", "multi_turn", "forecast"} <= set(report)
+    failed = {name: [c for c in s["quality"]["checks"] if not c["ok"]]
+              for name, s in report.items() if not s["quality"]["ok"]}
+    assert failed == {}
