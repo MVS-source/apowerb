@@ -79,7 +79,7 @@ def test_every_bench_scenario_keeps_its_quality_checks_green(replay):
     # Un échec connu doit rester un échec : quand le correctif arrive, ce test
     # le signale et le champ known_failure du scénario est à retirer.
     still_failing = {name: s["quality"]["ok"] for name, s in report.items() if s["known_failure"]}
-    assert still_failing == {"main_chat_spec": False}
+    assert still_failing == {}
 
 
 def test_group_by_gives_the_same_roas_as_one_query_per_channel(replay):
