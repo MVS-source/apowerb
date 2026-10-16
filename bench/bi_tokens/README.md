@@ -23,7 +23,7 @@ Sortie non nulle si un contrôle qualité échoue.
 | `dashboard_chat` | la question puis une relance (CA hebdomadaire) dans la même session | relance construite |
 | `multi_turn` | création, question et relance dans une seule conversation | tours DEV enchaînés |
 | `forecast` | prévision à 3 mois depuis le CSV joint : coup d'œil au fichier, tableau de prévision, widget | synthétique |
-| `main_chat_spec` | depuis le chat principal : lecture du tableau spec v2 par `tool_get_dashboard_data`, puis ROAS par canal. ÉCHEC CONNU (`known_failure`) tant que l'outil ignore les composants spec v2 | DEV 16/10, appels construits |
+| `main_chat_spec` | depuis le chat principal : lecture du tableau spec v2 par `tool_get_dashboard_data`, puis ROAS par canal (échouait avant le correctif #384 : lecture vide) | DEV 16/10, appels construits |
 | `question_targeted` | ESTIMATION : la question si le modèle ne demande que le KPI ROAS | variante scriptée |
 
 Un tour vient de `scenario.json` (`"recorded"`) ou décrit ses `steps` : les
