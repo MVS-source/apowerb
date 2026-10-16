@@ -39,3 +39,19 @@ Avant `d1` (695afa2) → après `d4` (dd43c4d)
 | multi_turn | 10→10 | 26→26 | 13 916→13 916 | 254 982 | 254 982 | +0.0 % | ✅ |
 | question | 3→3 | 26→26 | 13 959→13 959 | 65 765 | 65 765 | +0.0 % | ✅ |
 | question_targeted *(estim.)* | 3→3 | 26→26 | 13 959→13 959 | 51 853 | 51 853 | +0.0 % | ✅ |
+
+## D5 — `group_by` dans tool_bi_query_dashboard
+
+Avant `d4` (dd43c4d) → après `d5` (4e4fe32)
+
+| Scénario | Appels | Outils | 1er appel (tok) | Total avant | Total après | Δ | Qualité |
+|---|---|---|---|---|---|---|---|
+| creation | 5→5 | 26→26 | 13 916→13 988 | 88 515 | 88 875 | +0.4 % | ✅ |
+| dashboard_chat | 5→5 | 26→26 | 13 959→14 031 | 135 407 | 135 767 | +0.3 % | ✅ |
+| forecast | 4→4 | 26→26 | 13 906→13 978 | 61 164 | 61 452 | +0.5 % | ✅ |
+| multi_turn | 10→10 | 26→26 | 13 916→13 988 | 254 982 | 255 702 | +0.3 % | ✅ |
+| question | 3→3 | 26→26 | 13 959→14 031 | 65 765 | 65 981 | +0.3 % | ✅ |
+| question_grouped *(estim.)* | 3 | 26 | 14 031 | – | 51 094 | nouveau | ✅ |
+| question_targeted *(estim.)* | 3→3 | 26→26 | 13 959→14 031 | 51 853 | 52 069 | +0.4 % | ✅ |
+
+Coût fixe : +72 tokens par appel (déclaration). Gain si le modèle s'en sert : question 65 981 → 51 094 (−22,6 %), mais seulement −1,9 % face à `component_ids` par canal (question_targeted) : à juger au mode réel.

@@ -282,7 +282,19 @@ def targeted(turn: dict) -> dict:
     return turn
 
 
-TRANSFORMS = {"targeted": targeted}
+def grouped(turn: dict) -> dict:
+    """La question, si le modèle compare les canaux en un appel (group_by)
+    au lieu d'un appel par canal (ESTIMATION, comme targeted)."""
+    turn = json.loads(json.dumps(turn))
+    by_canal = turn["steps"][1]
+    dash_id = by_canal["calls"][0]["args"]["dashboard_id"]
+    by_canal["calls"] = [{"name": "tool_bi_query_dashboard",
+                          "args": {"dashboard_id": dash_id, "group_by": "canal", "component_ids": "ROAS"}}]
+    by_canal["responses"] = []
+    return turn
+
+
+TRANSFORMS = {"targeted": targeted, "grouped": grouped}
 
 
 def load_scenarios(estimates: bool = False) -> dict[str, dict]:
@@ -294,8 +306,10 @@ def load_scenarios(estimates: bool = False) -> dict[str, dict]:
         turns = []
         for t in sc["turns"]:
             turn = json.loads(json.dumps(SCENARIO[t["recorded"]])) if "recorded" in t else dict(t)
-            if t.get("transform"):
+            if t.get("transform"):  # appels changés : la mesure DEV ne vaut plus
                 turn = TRANSFORMS[t["transform"]](turn)
+                for step in turn["steps"]:
+                    step["measured_input_tokens"] = None
             turn["facts"] = t.get("facts", [])
             turns.append(turn)
         out[path.stem] = {**sc, "turns": turns}
@@ -443,8 +457,8 @@ def compare(before: dict, after: dict) -> tuple[str, bool]:
     for name, a in after["scenarios"].items():
         b = before["scenarios"].get(name)
         est = " *(estim.)*" if a["estimate"] else ""
-        new_mentions = set(a["quality"]["undeclared_in_instruction"]) - set(
-            (b or {}).get("quality", {}).get("undeclared_in_instruction", []))
+        new_mentions = b and set(a["quality"]["undeclared_in_instruction"]) - set(
+            b["quality"]["undeclared_in_instruction"])
         if new_mentions:  # la consigne cite un outil que l'agent n'a plus
             a = {**a, "quality": {**a["quality"], "ok": False}}
         if not b:

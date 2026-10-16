@@ -73,3 +73,33 @@ def test_every_bench_scenario_keeps_its_quality_checks_green(replay):
     failed = {name: [c for c in s["quality"]["checks"] if not c["ok"]]
               for name, s in report.items() if not s["quality"]["ok"]}
     assert failed == {}
+
+
+def test_group_by_gives_the_same_roas_as_one_query_per_channel(replay):
+    """group_by="canal" en un appel = les quatre requêtes filtrées de la démo."""
+    module, _ = replay
+    import apowerb.tools_store.portfolio.bi_dashboard_tools as t
+
+    dash_id = module._query_fixture()[None]["dashboard_id"]
+    res = t.tool_bi_query_dashboard(dash_id, group_by="canal", component_ids="ROAS")
+    assert res["success"] and res["group_by"] == "canal" and "canal" not in res["filters"]
+    grouped = {g["value"]: [c["value"] for c in g["components"]] for g in res["groups"]}
+    one_by_one = {
+        canal: [c["value"] for c in t.tool_bi_query_dashboard(
+            dash_id, json.dumps({"canal": canal}), component_ids="ROAS")["components"]]
+        for canal in ("Email", "Google Ads", "Instagram", "Organic")
+    }
+    assert grouped == one_by_one
+    assert grouped["Email"] == ["32.8"]
+
+
+@pytest.mark.parametrize("kwargs,error", [
+    ({"group_by": "canal"}, "needs component_ids"),
+    ({"group_by": "region", "component_ids": "ROAS"}, "Unknown filter 'region'"),
+])
+def test_group_by_misuse_is_explained(replay, kwargs, error):
+    module, _ = replay
+    import apowerb.tools_store.portfolio.bi_dashboard_tools as t
+
+    res = t.tool_bi_query_dashboard(module._query_fixture()[None]["dashboard_id"], **kwargs)
+    assert res["success"] is False and error in res["error"]
