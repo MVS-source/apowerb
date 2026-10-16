@@ -99,6 +99,21 @@ def _should_inject_chat_action_tools(agent_details: dict) -> bool:
     return not bool(agent_details.get("output_schema_name"))
 
 
+def _suppressed_auto_tools(superagent_template_id) -> frozenset:
+    """Auto-added tools the agent's SuperAgent template opts out of.
+
+    Read from the template's ``suppressed_auto_tools`` (BI templates list the
+    chat tools a BI agent never calls). Only the automatic addition is
+    skipped: the same tool configured in ``agent_tools`` is kept.
+    """
+    if not superagent_template_id:
+        return frozenset()
+    from apowerb.core.superagents import get_superagent_template
+
+    template = get_superagent_template(superagent_template_id) or {}
+    return frozenset(template.get("suppressed_auto_tools") or ())
+
+
 def _should_inject_dashboard_tool() -> bool:
     """Gate the automatic injection of ``tool_get_dashboard_data``.
 
@@ -600,7 +615,12 @@ def to_agent(agent_name: str) -> LlmAgent:
 
         # Auto-add pdf_to_images so the agent can render uploaded PDFs to
         # base64 PNGs for vision-LLM analysis (scanned ARs, complex layouts...)
-        tools_funcs = bind_pdf_to_images(agent_name, tools_funcs)
+        # A template may opt out of auto-added tools it never uses (BI agents):
+        # each declaration is re-sent with every model call.
+        _suppressed = _suppressed_auto_tools(superagent_template_id)
+        tools_funcs = bind_pdf_to_images(
+            agent_name, tools_funcs, add="tool_pdf_to_images" not in _suppressed
+        )
         tools_funcs = bind_pdf_first_page(agent_name, tools_funcs)
 
         # Bind tool_get_webhook_backlog_status to the integer agent id so
@@ -644,6 +664,8 @@ def to_agent(agent_name: str) -> LlmAgent:
 
         def _add_auto_tool(fn):
             name = getattr(fn, "__name__", "")
+            if name in _suppressed:
+                return
             if name and name in _existing_names:
                 logger.debug(
                     f"[TO_AGENT] skipping auto-add of {name!r} for {agent_name} "
