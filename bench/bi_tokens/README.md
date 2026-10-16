@@ -23,18 +23,22 @@ Sortie non nulle si un contrôle qualité échoue.
 | `dashboard_chat` | la question puis une relance (CA hebdomadaire) dans la même session | relance construite |
 | `multi_turn` | création, question et relance dans une seule conversation | tours DEV enchaînés |
 | `forecast` | prévision à 3 mois depuis le CSV joint : coup d'œil au fichier, tableau de prévision, widget | synthétique |
+| `main_chat_spec` | depuis le chat principal : lecture du tableau spec v2 par `tool_get_dashboard_data`, puis ROAS par canal. ÉCHEC CONNU (`known_failure`) tant que l'outil ignore les composants spec v2 | DEV 16/10, appels construits |
 | `question_targeted` | ESTIMATION : la question si le modèle ne demande que le KPI ROAS | variante scriptée |
 
 Un tour vient de `scenario.json` (`"recorded"`) ou décrit ses `steps` : les
 appels d'outils du modèle, sa réponse, et `measured_input_tokens` quand le tour
 a été mesuré en DEV. `facts` (expressions régulières) doivent figurer dans ce
 que le modèle voit : au dernier appel du tour, ou à une étape précise.
+`env` pose des variables le temps du rejeu (`AGENT_DASHBOARD_ID`) ; `known_failure`
+décrit un défaut connu : le scénario est affiché en échec sans faire échouer le
+banc, et le test CI exige qu'il échoue encore (à retirer une fois corrigé).
 
 - Le modèle est un script qui refait ces appels. L'agent est construit par
   `to_agent`, la requête passe par la conversion LiteLLM d'ADK : on mesure ce
   qui part.
 - Outils LIVE (vrai code) : `tool_bi_list_dashboard_templates`,
-  `tool_bi_query_dashboard` (sur les valeurs enregistrées) et
+  `tool_bi_query_dashboard`, `tool_get_dashboard_data` (sur les valeurs enregistrées) et
   `read_uploaded_file` (sur le CSV de la démo, régénéré à chaque passage :
   13 554 lignes, graine fixe). Les autres renvoient leur réponse enregistrée.
 - `tokens` (tokenizer Gemini local) dépasse `llm_usage.input_tokens` mesuré en
