@@ -95,7 +95,7 @@ def install_live_tools():
     comps = [SimpleNamespace(id=c["id"], visual=SimpleNamespace(title=c.get("title"), kpi=None, type=c["type"]),
                              chart=None, key_value=None)
              for c in first["components"]]
-    dashboard = SimpleNamespace(id=first["dashboard_id"], title=first["title"], components=comps, sources={"s": 1})
+    dashboard = SimpleNamespace(id=first["dashboard_id"], title=first["title"], components=comps, sources={"s": 1}, filters=[])
 
     class Store:
         async def get(self, dashboard_id):

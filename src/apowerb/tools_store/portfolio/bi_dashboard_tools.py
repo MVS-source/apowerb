@@ -468,10 +468,12 @@ async def _async_query(
 
 
 async def _grouped(dashboard, owner: str, filters: dict, components: list[str], group_by: str, base: dict) -> dict:
-    """The selected components once per value of the filter ``group_by``."""
-    options = base.get("filter_options", {})
+    """The selected components once per value of the filter ``group_by``:
+    its options (select) or its presets (period, grain...)."""
+    options = dict(base.get("filter_options", {}))
+    options.update({f.id: f.presets for f in dashboard.filters if f.presets and f.id not in options})
     if group_by not in options:
-        return {"success": False, "error": f"Unknown filter {group_by!r} for group_by. Filters: {', '.join(options) or 'none'}."}
+        return {"success": False, "error": f"Filter {group_by!r} has no values to group by. group_by accepts: {', '.join(options) or 'none'}."}
     groups, errors = [], {}
     for value in options[group_by]:
         part = await _preview(dashboard, owner, {**filters, group_by: value}, components=components)
@@ -1036,7 +1038,7 @@ def tool_bi_query_dashboard(
         dashboard_id: Dashboard id (UUID).
         filters_json: JSON object of filter values, "{}" for the defaults.
         component_ids: Comma-separated component ids or titles, "" for all.
-        group_by: Filter id: component_ids for each of its values, "" for none.
+        group_by: Filter id: component_ids for each of its values or period presets, "" for none.
     """
     owner = _agent_owner()
     if not owner:
