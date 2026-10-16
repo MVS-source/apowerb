@@ -9,12 +9,11 @@ from apowerb.core.agent_helpers.read_file_tool import _make_read_uploaded_file
 def uploads(tmp_path, monkeypatch):
     from apowerb.configs.settings import get_settings
 
-    monkeypatch.setenv("STORAGE_MODE", "local")
-    monkeypatch.setenv("UPLOADS_DIR", str(tmp_path))
-    get_settings.cache_clear()
+    settings = get_settings()  # le singleton, que d'autres modules ont importé
+    monkeypatch.setattr(settings, "storage_mode", "local")
+    monkeypatch.setattr(settings, "uploads_dir", str(tmp_path))
     (tmp_path / "agent1").mkdir()
-    yield tmp_path / "agent1"
-    get_settings.cache_clear()
+    return tmp_path / "agent1"
 
 
 def _big_csv(rows=2000):
