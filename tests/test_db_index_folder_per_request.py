@@ -51,7 +51,7 @@ def _db(monkeypatch, tmp_path):
     monkeypatch.setattr(
         db_to_rag, "tool_create_knowledge", lambda **k: {"status": "success", "knowledge_id": "k"}
     )
-    monkeypatch.setattr(index_db, "set_tool_config_params_as_envvar", lambda *a, **k: None)
+    monkeypatch.setattr(index_db, "load_tool_config_params", lambda *a, **k: (None, {}))
     yield
 
 
