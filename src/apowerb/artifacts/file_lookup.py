@@ -21,12 +21,14 @@ of that agent, including the ``_shared`` scope of unsessioned uploads.
 
 from __future__ import annotations
 
+import datetime
 from typing import Optional
 
 from apowerb.storage.s3 import (
     download_file_from_s3,
     file_exists_in_s3,
     list_files_in_s3,
+    list_objects_in_s3,
 )
 
 _ARTIFACTS_ROOT = "artifacts"
@@ -42,14 +44,20 @@ def _latest_by_segment(agent: str, filename: str) -> dict[str, str]:
     asking per segment doubled the round trips for every file an agent
     reads, for the same bytes.
 
-    Versions are compared as integers: sorting the raw keys would place
-    "10" before "2" and serve a stale version.
+    The newest object wins. Version numbers only order the copies of one
+    session -- each session numbers its uploads from 0 -- so across sessions
+    they say nothing: a file attached again in a new conversation is v0
+    like the one it replaces, and the first key listed used to win, serving
+    the older upload. Versions still break a timestamp tie, compared as
+    integers: sorting the raw keys would place "10" before "2".
     """
     prefix = f"{_ARTIFACTS_ROOT}/{agent}/"
     leaf_name = filename.split("/")[-1]
-    best: dict[str, tuple[int, str]] = {}
+    best: dict[str, tuple[tuple[datetime.datetime, int], str]] = {}
+    oldest = datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
 
-    for key in list_files_in_s3(prefix=prefix):
+    for obj in list_objects_in_s3(prefix=prefix):
+        key = obj["key"]
         for segment in (INPUT, OUTPUT):
             marker = f"/{segment}/{filename}/"
             if marker not in key:
@@ -61,9 +69,9 @@ def _latest_by_segment(agent: str, filename: str) -> dict[str, str]:
             if tail[1] != leaf_name and tail[1] != filename:
                 # metadata.json and other siblings are not the artifact.
                 break
-            version = int(tail[0])
-            if segment not in best or version > best[segment][0]:
-                best[segment] = (version, key)
+            rank = (obj.get("last_modified") or oldest, int(tail[0]))
+            if segment not in best or rank > best[segment][0]:
+                best[segment] = (rank, key)
             break
 
     return {segment: key for segment, (_, key) in best.items()}
