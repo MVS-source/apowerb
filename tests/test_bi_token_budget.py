@@ -80,3 +80,19 @@ def test_every_bench_scenario_keeps_its_quality_checks_green(replay):
     # le signale et le champ known_failure du scénario est à retirer.
     still_failing = {name: s["quality"]["ok"] for name, s in report.items() if s["known_failure"]}
     assert still_failing == {"main_chat_spec": False}
+
+
+def test_compare_does_not_fail_on_a_known_failure(replay):
+    module, _ = replay
+
+    def scenario(ok, known=None):
+        return {"estimate": False, "known_failure": known, "calls": [{}], "n_tools": 1,
+                "first_call_tokens": 1, "tokens": 10,
+                "quality": {"ok": ok, "undeclared_in_instruction": []}}
+
+    before = {"meta": {}, "scenarios": {"a": scenario(True)}}
+    known = {"meta": {}, "scenarios": {"a": scenario(True), "b": scenario(False, "défaut connu")}}
+    broken = {"meta": {}, "scenarios": {"a": scenario(False)}}
+    table, ok = module.compare(before, known)
+    assert ok and "❌ connu" in table
+    assert module.compare(before, broken)[1] is False
