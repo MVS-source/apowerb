@@ -17,6 +17,12 @@ two possible destinations (the OTLP collector, if any, and Langfuse).
   would install the global provider itself and ADK's own would be refused,
   taking ADK's in-memory trace exporters (``/debug/trace``) with it.
 
+* **Who and which conversation.** ADK puts the session id on its agent spans
+  only, and the user id on none, so Langfuse could neither filter a trace by
+  user nor group it by session. Once the export is active, every
+  ``Runner.run_async`` call (``/run``, ``/run_sse``, workflows) propagates
+  its ``user_id`` and ``session_id`` to all the spans of the run.
+
 ``LANGFUSE_HOST`` must be reachable from the process, not from the operator's
 machine. In a container, ``127.0.0.1`` is the container itself: a Langfuse
 exposed on the host's loopback only (an SSH tunnel, for instance) needs
@@ -30,8 +36,10 @@ endpoint is refused. The v4 SDK exports over OTLP, so nothing here touches it.
 
 from __future__ import annotations
 
+import functools
 import os
-from collections.abc import Callable
+from collections.abc import AsyncGenerator, Callable
+from contextlib import ExitStack, aclosing
 from typing import Any
 
 from opentelemetry.sdk.trace import SpanProcessor
@@ -58,6 +66,7 @@ _GENERATE_CONTENT = "generate_content"
 
 _client: Any = None
 _open_call_llm_spans: set[int] = set()
+_run_async_wrapped = False
 
 
 class _CallLlmTracker(SpanProcessor):
@@ -100,6 +109,63 @@ def _export_filter(is_default_export_span: Callable[[Any], bool]) -> Callable[[A
         return True
 
     return should_export
+
+
+def _enter_run_identity(stack: ExitStack, user_id: Any, session_id: Any) -> None:
+    """Propagate the run's user and session to the spans it starts. Never raises."""
+    if _client is None:
+        return
+    try:
+        from langfuse import propagate_attributes
+
+        stack.enter_context(
+            propagate_attributes(
+                user_id=None if user_id is None else str(user_id),
+                session_id=None if session_id is None else str(session_id),
+            )
+        )
+    except Exception as exc:  # noqa: BLE001 - the run matters more than its labels
+        _logger.warning(
+            "langfuse: cannot attach user and session to this run's traces: %s", exc
+        )
+
+
+def _wrap_run_async(
+    run_async: Callable[..., AsyncGenerator[Any, None]],
+) -> Callable[..., AsyncGenerator[Any, None]]:
+    """``Runner.run_async``, labelling its spans with its user and session.
+
+    ADK opens the root ``invocation`` span on the first iteration, not on the
+    call, so the attributes are attached inside the generator, around the
+    iteration, rather than around the call.
+    """
+
+    @functools.wraps(run_async)
+    async def labelled_run_async(self: Any, *args: Any, **kwargs: Any):
+        with ExitStack() as stack:
+            _enter_run_identity(stack, kwargs.get("user_id"), kwargs.get("session_id"))
+            async with aclosing(run_async(self, *args, **kwargs)) as events:
+                async for event in events:
+                    yield event
+
+    return labelled_run_async
+
+
+def _label_runs_with_identity() -> None:
+    """Wrap ``Runner.run_async`` once, for every runner and subclass."""
+    global _run_async_wrapped
+
+    if _run_async_wrapped:
+        return
+    try:
+        from google.adk.runners import Runner
+
+        Runner.run_async = _wrap_run_async(Runner.run_async)
+        _run_async_wrapped = True
+    except Exception as exc:  # noqa: BLE001 - unlabelled traces beat no traces
+        _logger.warning(
+            "langfuse: traces will carry no user or session id: %s", exc
+        )
 
 
 def enable_langfuse_tracing() -> bool:
@@ -159,6 +225,8 @@ def enable_langfuse_tracing() -> bool:
             "counted twice: %s",
             exc,
         )
+
+    _label_runs_with_identity()
 
     _logger.info("langfuse: agent traces exported to %s", host)
     return True

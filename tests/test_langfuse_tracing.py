@@ -6,10 +6,14 @@ three variables, this must do nothing at all — not even import the SDK.
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
+import contextvars
 import sys
 import types
 
 import pytest
+from google.adk.runners import Runner
 
 from apowerb.configs import langfuse_tracing
 
@@ -22,6 +26,9 @@ def _reset(monkeypatch):
         monkeypatch.delenv(var, raising=False)
     monkeypatch.setattr(langfuse_tracing, "_client", None)
     langfuse_tracing._open_call_llm_spans.clear()
+    # enable_langfuse_tracing wraps Runner.run_async: undo it after each test.
+    monkeypatch.setattr(Runner, "run_async", Runner.run_async)
+    monkeypatch.setattr(langfuse_tracing, "_run_async_wrapped", False)
     yield
 
 
@@ -31,9 +38,22 @@ def _configure(monkeypatch):
     monkeypatch.setenv("LANGFUSE_HOST", "http://langfuse.test:3000")
 
 
-def _fake_sdk(monkeypatch, *, init_error=None):
+_propagated: contextvars.ContextVar = contextvars.ContextVar("propagated", default=None)
+
+
+def _fake_sdk(monkeypatch, *, init_error=None, propagate_error=None):
     """Stand in for the optional extra and record how it was built."""
     built = {}
+
+    @contextlib.contextmanager
+    def propagate_attributes(**kwargs):
+        if propagate_error is not None:
+            raise propagate_error
+        token = _propagated.set(kwargs)
+        try:
+            yield
+        finally:
+            _propagated.reset(token)
 
     class Langfuse:
         def __init__(self, **kwargs):
@@ -47,6 +67,7 @@ def _fake_sdk(monkeypatch, *, init_error=None):
 
     sdk = types.ModuleType("langfuse")
     sdk.Langfuse = Langfuse
+    sdk.propagate_attributes = propagate_attributes
     span_filter = types.ModuleType("langfuse.span_filter")
     span_filter.is_default_export_span = lambda span: bool(
         getattr(span, "genai", False)
@@ -217,3 +238,96 @@ class TestTrackerOnARealProvider:
             with tracer.start_as_current_span("generate_content gemini-2.5-flash"):
                 pass
         assert langfuse_tracing._open_call_llm_spans == set()
+
+
+async def _fake_run_async(self, *, user_id, session_id, new_message=None):
+    """A runner's run, reporting what was propagated when each event is made.
+
+    ADK opens its root span on the first iteration: what matters is the
+    context seen inside the generator, not around the call.
+    """
+    for index in range(2):
+        yield (index, _propagated.get())
+
+
+def _collect(run_async, **kwargs):
+    async def drain():
+        return [event async for event in run_async(object(), **kwargs)]
+
+    return asyncio.run(drain())
+
+
+class TestRunIdentity:
+    """Measured 16/10/2026: a POST /run reached Langfuse with no user id at
+    all, and a session id on the agent span only, not on the trace root."""
+
+    def test_runs_are_untouched_while_langfuse_is_off(self):
+        original = Runner.run_async
+        assert langfuse_tracing.enable_langfuse_tracing() is False
+        assert Runner.run_async is original
+
+    def test_enabling_wraps_every_runner_once(self, monkeypatch):
+        original = Runner.run_async
+        _configure(monkeypatch)
+        _fake_sdk(monkeypatch)
+        assert langfuse_tracing.enable_langfuse_tracing() is True
+        wrapped = Runner.run_async
+        assert wrapped.__wrapped__ is original
+        langfuse_tracing.flush_langfuse_tracing()
+        assert langfuse_tracing.enable_langfuse_tracing() is True
+        assert Runner.run_async is wrapped
+
+    def test_user_and_session_reach_the_spans_of_the_run(self, monkeypatch):
+        _configure(monkeypatch)
+        _fake_sdk(monkeypatch)
+        langfuse_tracing.enable_langfuse_tracing()
+        run_async = langfuse_tracing._wrap_run_async(_fake_run_async)
+        events = _collect(run_async, user_id="u-1", session_id="s-1")
+        expected = {"user_id": "u-1", "session_id": "s-1"}
+        assert events == [(0, expected), (1, expected)]
+        assert _propagated.get() is None
+
+    def test_nothing_is_propagated_once_langfuse_is_stopped(self, monkeypatch):
+        _configure(monkeypatch)
+        _fake_sdk(monkeypatch)
+        langfuse_tracing.enable_langfuse_tracing()
+        langfuse_tracing.flush_langfuse_tracing()
+        run_async = langfuse_tracing._wrap_run_async(_fake_run_async)
+        assert _collect(run_async, user_id="u-1", session_id="s-1") == [
+            (0, None),
+            (1, None),
+        ]
+
+    def test_a_failing_propagation_does_not_stop_the_run(self, monkeypatch, caplog):
+        _configure(monkeypatch)
+        _fake_sdk(monkeypatch, propagate_error=ValueError("bad id"))
+        langfuse_tracing.enable_langfuse_tracing()
+        run_async = langfuse_tracing._wrap_run_async(_fake_run_async)
+        with caplog.at_level("WARNING"):
+            events = _collect(run_async, user_id="u-1", session_id="s-1")
+        assert events == [(0, None), (1, None)]
+        assert "bad id" in caplog.text
+
+    def test_stopping_early_closes_the_runner_generator(self, monkeypatch):
+        _configure(monkeypatch)
+        _fake_sdk(monkeypatch)
+        langfuse_tracing.enable_langfuse_tracing()
+        closed = []
+
+        async def run(self, **kwargs):
+            try:
+                yield 0
+                yield 1
+            finally:
+                closed.append(True)
+
+        async def first_only():
+            events = langfuse_tracing._wrap_run_async(run)(
+                object(), user_id="u", session_id="s"
+            )
+            first = await anext(events)
+            await events.aclose()
+            return first
+
+        assert asyncio.run(first_only()) == 0
+        assert closed == [True]
