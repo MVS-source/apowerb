@@ -21,11 +21,11 @@ RUN if [ "$RUNG" = 1 ]; then \
       dpkg --purge libudev1 > /RUNG1.log 2>&1 || echo "REFUS" >> /RUNG1.log; cat /RUNG1.log; \
     fi
 RUN if [ "$RUNG" -ge 2 ]; then \
-      dpkg --purge --force-remove-essential apt $(dpkg-query -W -f='${Package} ' 'libapt-pkg*') libsystemd0 libudev1; \
+      dpkg --purge --force-remove-essential apt $(dpkg-query -W -f='${db:Status-Abbrev} ${Package}\n' 'libapt-pkg*' | awk '/^ii/{print $2}') libsystemd0 libudev1; \
     fi
 RUN if [ "$RUNG" -ge 3 ]; then \
       rm -f /usr/local/lib/python3.13/lib-dynload/readline.* \
-      && dpkg --purge --force-remove-essential bash $(dpkg-query -W -f='${Package} ' 'libreadline*') libtinfo6; \
+      && dpkg --purge --force-remove-essential bash $(dpkg-query -W -f='${db:Status-Abbrev} ${Package}\n' 'libreadline*' | awk '/^ii/{print $2}') libtinfo6; \
     fi
 COPY --from=builder /opt/venv /opt/venv
 COPY docker/entrypoint.sh /usr/local/bin/apowerb-entrypoint

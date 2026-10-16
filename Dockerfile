@@ -12,7 +12,6 @@ ARG APPOWERB_VERSION
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_NO_CACHE=1 \
-    UV_PYTHON=/usr/bin/python3.13 \
     UV_PYTHON_DOWNLOADS=never
 
 WORKDIR /app
@@ -25,7 +24,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
 COPY pyproject.toml uv.lock ./
 
-RUN uv venv /opt/venv \
+RUN uv venv --python /usr/bin/python3.13 /opt/venv \
     && VIRTUAL_ENV=/opt/venv uv sync --no-dev --no-install-project \
     # `[otel]` pulls th2pulse, which is what bridges application log records to
     # the collector. Without it apowerb.configs.observability finds no th2pulse,
