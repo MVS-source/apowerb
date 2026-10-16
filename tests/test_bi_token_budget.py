@@ -102,7 +102,7 @@ def test_group_by_gives_the_same_roas_as_one_query_per_channel(replay):
 
 @pytest.mark.parametrize("kwargs,error", [
     ({"group_by": "canal"}, "needs component_ids"),
-    ({"group_by": "region", "component_ids": "ROAS"}, "Unknown filter 'region'"),
+    ({"group_by": "region", "component_ids": "ROAS"}, "Filter 'region' has no values"),
 ])
 def test_group_by_misuse_is_explained(replay, kwargs, error):
     module, _ = replay

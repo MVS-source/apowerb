@@ -278,6 +278,32 @@ def test_query_returns_values_with_truncated_rows(env):
     assert "object" in t.tool_bi_query_dashboard(dash_id, "[1]")["error"]
 
 
+PERIOD_SPEC = {**SPEC, "filters": [
+    {"id": "famille", "label": "Famille", "field": "famille", "type": "select"},
+    {"id": "periode", "label": "Periode", "field": "semaine", "type": "relative_period",
+     "default": "26w", "presets": ["13w", "26w", "all"]},
+    {"id": "dates", "label": "Dates", "field": "semaine", "type": "date_range"},
+]}
+
+
+def test_group_by_a_period_filter_runs_once_per_preset(env):
+    """L'agent compare souvent les périodes : group_by="periode" le faisait
+    échouer (seuls les filtres select avaient des valeurs) et il réessayait."""
+    dash_id = _create(spec=PERIOD_SPEC)["dashboard_id"]
+    res = t.tool_bi_query_dashboard(dash_id, json.dumps({"famille": "A"}), component_ids="Total", group_by="periode")
+    assert res["success"] is True, res
+    assert [g["value"] for g in res["groups"]] == ["13w", "26w", "all"]
+    assert [c["filters"] for c in env.computed[-3:]] == [
+        {"famille": "A", "periode": p} for p in ("13w", "26w", "all")]
+
+
+def test_group_by_error_lists_the_filters_it_accepts(env):
+    dash_id = _create(spec=PERIOD_SPEC)["dashboard_id"]
+    res = t.tool_bi_query_dashboard(dash_id, component_ids="Total", group_by="dates")
+    assert res["success"] is False
+    assert "famille, periode" in res["error"] and "dates" not in res["error"].split(":", 1)[1]
+
+
 def test_describe(env):
     dash_id = _create()["dashboard_id"]
     res = t.tool_bi_describe_dashboard(dash_id)
