@@ -106,12 +106,16 @@ def _suppressed_auto_tools(superagent_template_id) -> frozenset:
     chat tools a BI agent never calls). Only the automatic addition is
     skipped: the same tool configured in ``agent_tools`` is kept.
     """
+    return frozenset(_template_setting(superagent_template_id, "suppressed_auto_tools", ()) or ())
+
+
+def _template_setting(superagent_template_id, key: str, default):
+    """A runtime setting of the agent's SuperAgent template, ``default`` without one."""
     if not superagent_template_id:
-        return frozenset()
+        return default
     from apowerb.core.superagents import get_superagent_template
 
-    template = get_superagent_template(superagent_template_id) or {}
-    return frozenset(template.get("suppressed_auto_tools") or ())
+    return (get_superagent_template(superagent_template_id) or {}).get(key, default)
 
 
 def _should_inject_dashboard_tool() -> bool:
@@ -608,7 +612,10 @@ def to_agent(agent_name: str) -> LlmAgent:
 
         # Auto-add file reading tool — skip for RAG agents (they use the RAG API pipeline)
         _is_rag_template = is_rag_template(superagent_template_id)
-        tools_funcs = bind_read_uploaded_file(agent_name, tools_funcs, _is_rag_template)
+        tools_funcs = bind_read_uploaded_file(
+            agent_name, tools_funcs, _is_rag_template,
+            tabular_preview_rows=_template_setting(superagent_template_id, "tabular_file_preview_rows", 0),
+        )
 
         # Auto-add create_downloadable_file so the agent can generate files for download
         bind_create_downloadable_file(agent_name, tools_funcs)

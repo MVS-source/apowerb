@@ -25,3 +25,17 @@ Avant `main` (36ef99e) → après `d1` (695afa2)
 | multi_turn | 10→10 | 36→26 | 17 070→13 916 | 286 522 | 254 982 | -11.0 % | ✅ |
 | question | 3→3 | 36→26 | 17 113→13 959 | 75 227 | 65 765 | -12.6 % | ✅ |
 | question_targeted *(estim.)* | 3→3 | 36→26 | 17 113→13 959 | 61 315 | 51 853 | -15.4 % | ✅ |
+
+
+## D4 — gros CSV lu en en-tête + 20 lignes + nombre de lignes (agents BI)
+
+Avant `d1` (695afa2) → après `d4` (dd43c4d)
+
+| Scénario | Appels | Outils | 1er appel (tok) | Total avant | Total après | Δ | Qualité |
+|---|---|---|---|---|---|---|---|
+| creation | 5→5 | 26→26 | 13 916→13 916 | 88 515 | 88 515 | +0.0 % | ✅ |
+| dashboard_chat | 5→5 | 26→26 | 13 959→13 959 | 135 407 | 135 407 | +0.0 % | ✅ |
+| forecast | 4→4 | 26→26 | 13 906→13 906 | 96 159 | 61 164 | -36.4 % | ✅ |
+| multi_turn | 10→10 | 26→26 | 13 916→13 916 | 254 982 | 254 982 | +0.0 % | ✅ |
+| question | 3→3 | 26→26 | 13 959→13 959 | 65 765 | 65 765 | +0.0 % | ✅ |
+| question_targeted *(estim.)* | 3→3 | 26→26 | 13 959→13 959 | 51 853 | 51 853 | +0.0 % | ✅ |

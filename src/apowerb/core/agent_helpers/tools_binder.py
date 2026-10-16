@@ -78,7 +78,9 @@ def is_rag_template(superagent_template_id) -> bool:
     return bool(_tpl_check and "rag" in _tpl_check.get("tags", []))
 
 
-def bind_read_uploaded_file(agent_name: str, tools_funcs: list, is_rag: bool) -> list:
+def bind_read_uploaded_file(
+    agent_name: str, tools_funcs: list, is_rag: bool, tabular_preview_rows: int = 0
+) -> list:
     """Attach or replace ``tool_read_uploaded_file`` for the given agent.
 
     RAG agents get the placeholder stripped instead (they use the RAG API).
@@ -105,11 +107,11 @@ def bind_read_uploaded_file(agent_name: str, tools_funcs: list, is_rag: bool) ->
             fn is _placeholder
             or getattr(fn, "__name__", "") == "tool_read_uploaded_file"
         ):
-            tools_funcs[i] = _make_read_uploaded_file(agent_name)
+            tools_funcs[i] = _make_read_uploaded_file(agent_name, tabular_preview_rows)
             replaced = True
             break
     if not replaced:
-        tools_funcs.append(_make_read_uploaded_file(agent_name))
+        tools_funcs.append(_make_read_uploaded_file(agent_name, tabular_preview_rows))
     logger.info(f"[TO_AGENT] read_uploaded_file bound to folder {agent_name}")
     return tools_funcs
 
