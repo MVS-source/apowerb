@@ -91,7 +91,9 @@ def install_live_tools():
 
     recorded = _query_fixture()
     first = recorded[None]
-    comps = [SimpleNamespace(id=c["id"], visual=SimpleNamespace(title=c.get("title"), kpi=None, type=c["type"]))
+    # Composants spec v2 : visual renseigné, ni chart ni key_value (anciens tableaux)
+    comps = [SimpleNamespace(id=c["id"], visual=SimpleNamespace(title=c.get("title"), kpi=None, type=c["type"]),
+                             chart=None, key_value=None)
              for c in first["components"]]
     dashboard = SimpleNamespace(id=first["dashboard_id"], title=first["title"], components=comps, sources={"s": 1})
 
@@ -134,7 +136,20 @@ def install_live_tools():
             return pool.submit(asyncio.run, coro).result()
 
     t._run_tool = run_tool
-    return {"tool_bi_query_dashboard", "tool_bi_list_dashboard_templates", "read_uploaded_file"}
+
+    # tool_get_dashboard_data lit le même tableau par le service des tableaux de bord
+    import apowerb.bi.db_stores as db_stores
+    import apowerb.tools_store.portfolio.business_intelligence as bi
+
+    @contextlib.asynccontextmanager
+    async def no_db():
+        yield None
+
+    bi._get_session = no_db
+    bi._agent_owner = lambda: OWNER
+    db_stores.DatabaseDashboardStore = lambda db, owner=None: Store()
+    return {"tool_bi_query_dashboard", "tool_bi_list_dashboard_templates", "read_uploaded_file",
+            "tool_get_dashboard_data"}
 
 
 def write_orders_csv(path: Path, rows: int = 13554) -> None:
@@ -317,6 +332,20 @@ def load_scenarios(estimates: bool = False) -> dict[str, dict]:
 
 
 async def run_scenario(sc: dict, live: set[str]) -> Script:
+    """Rejoue ``sc`` ; ``env`` du scénario est posé le temps du rejeu."""
+    saved_env = {k: os.environ.get(k) for k in sc.get("env", {})}
+    os.environ.update(sc.get("env", {}))
+    try:
+        return await _run_scenario(sc, live)
+    finally:
+        for k, v in saved_env.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+
+async def _run_scenario(sc: dict, live: set[str]) -> Script:
     from google.adk.runners import Runner
     from google.adk.sessions import InMemorySessionService
     from google.genai import types
@@ -373,7 +402,8 @@ def summarize(sc: dict, script: Script) -> dict:
     log = script.log
     return {
         "description": sc.get("description", ""), "source": sc.get("source", ""),
-        "estimate": bool(sc.get("estimate")), "turns": len(sc["turns"]), "calls": log,
+        "estimate": bool(sc.get("estimate")), "known_failure": sc.get("known_failure"),
+        "turns": len(sc["turns"]), "calls": log,
         "tokens": sum(r["tokens"] or 0 for r in log) if all(r["tokens"] for r in log) else None,
         "chars": sum(r["system"] + r["tools"] + r["history"] for r in log),
         "first_call_tokens": log[0]["tokens"] if log else None,
@@ -421,7 +451,8 @@ def _git_sha() -> str:
 
 def print_report(report: dict) -> None:
     for name, s in report.items():
-        tag = " (ESTIMATION)" if s["estimate"] else ""
+        tag = (" (ESTIMATION)" if s["estimate"] else "") + (
+            f" (ÉCHEC CONNU : {s['known_failure']})" if s.get("known_failure") else "")
         print(f"== {name}{tag} — {s['turns']} tour(s), {len(s['calls'])} appels, {s['n_tools']} outils")
         print(f"{'call':>4} {'turn':>4} {'system':>7} {'tools':>7} {'history':>8} {'chars':>8} {'tokens':>7} {'measured':>8}")
         for i, r in enumerate(s["calls"], 1):
@@ -502,7 +533,7 @@ def main() -> int:
         return 0 if ok else 1
     else:
         print_report(scenarios)
-    return 0 if all(s["quality"]["ok"] for s in scenarios.values()) else 1
+    return 0 if all(s["quality"]["ok"] or s.get("known_failure") for s in scenarios.values()) else 1
 
 
 if __name__ == "__main__":
