@@ -341,6 +341,8 @@ tool_text_to_sql fails → show the exact error, call tool_get_database_schema, 
         ],
         "agent_skills": ["forecasting", "data-visualization"],
         "suppressed_auto_tools": BI_SUPPRESSED_AUTO_TOOLS,
+        # read_uploaded_file : en-tête + 20 lignes + nombre de lignes d'un gros CSV
+        "tabular_file_preview_rows": 20,
         "memory_enabled": False,
         "artifacts_enabled": True,
         "guardrails_config": None,
