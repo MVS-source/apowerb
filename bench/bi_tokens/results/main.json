@@ -1,8 +1,8 @@
 {
  "meta": {
   "label": "main",
-  "git_sha": "6a55960",
-  "date": "2026-10-16T09:01Z",
+  "git_sha": "3b13955",
+  "date": "2026-10-16T09:11Z",
   "model": "gemini/gemini-2.5-flash"
  },
  "scenarios": {
@@ -352,7 +352,7 @@
    "description": "Chat principal (pas le mini-chat) : « sur mon tableau Store Performance, quel canal a le meilleur ROAS ? ». L'agent lit le tableau spec v2 avec tool_get_dashboard_data, puis le ROAS de chaque canal",
    "source": "DEV 16/10 08:36Z (BI Assistant, cœur 0.2.82) : tool_get_dashboard_data a rendu un tableau vide et l'agent a répondu qu'il n'avait pas de données ; appels et réponse attendus construits sur les données de la démo",
    "estimate": false,
-   "known_failure": "tool_get_dashboard_data ignore les composants spec v2 (comp.visual) : corrigé par la branche fix/get-dashboard-data-spec-v2 ; retirer ce champ quand elle est mergée",
+   "known_failure": null,
    "turns": 1,
    "calls": [
     {
@@ -368,8 +368,8 @@
      "turn": 1,
      "system": 11191,
      "tools": 65286,
-     "history": 548,
-     "tokens": 20813,
+     "history": 6844,
+     "tokens": 24593,
      "n_tools": 44,
      "measured": null
     },
@@ -377,19 +377,19 @@
      "turn": 1,
      "system": 11191,
      "tools": 65286,
-     "history": 4258,
-     "tokens": 22279,
+     "history": 10554,
+     "tokens": 26059,
      "n_tools": 44,
      "measured": null
     }
    ],
-   "tokens": 63733,
-   "chars": 234352,
+   "tokens": 71293,
+   "chars": 246944,
    "first_call_tokens": 20641,
    "n_tools": 44,
    "measured": null,
    "quality": {
-    "ok": false,
+    "ok": true,
     "checks": [
      {
       "check": "declared",
@@ -406,11 +406,8 @@
      {
       "check": "facts",
       "call": 2,
-      "ok": false,
-      "detail": [
-       "Revenue by channel",
-       "ROAS[^{}]{0,60}5\\.3"
-      ]
+      "ok": true,
+      "detail": []
      },
      {
       "check": "declared",

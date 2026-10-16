@@ -19,6 +19,10 @@ Input handling
   worker), so only the provider's own fetcher sees it.
 * a local file path — read from disk and sent inline as a base64 ``data:`` URL.
   This mirrors how ``audio.tool_speech_to_text`` accepts an uploaded file path.
+* the bare name of a file the user uploaded to the agent (``cv.pdf``, as shown
+  in ``[Uploaded files: …]``). The agent never knows where uploads live, so the
+  name is looked up in the root agent's upload store — S3 input artifacts or
+  ``uploads/agent{id}/`` on disk — the same places ``read_uploaded_file`` reads.
 
 Output is bounded: a huge scan can return megabytes of markdown (and, with
 ``include_images=True``, base64 image crops). The combined markdown is capped
@@ -98,25 +102,57 @@ def _is_remote(source: str) -> bool:
     return source.strip().lower().startswith(("http://", "https://"))
 
 
-def _read_supported_file(source: str) -> tuple[str, str, bytes]:
-    """Read a local file, validating it exists and is a supported type.
+def _read_uploaded_file(name: str) -> bytes | None:
+    """Bytes of the file ``name`` uploaded to the current root agent.
 
-    Returns ``(mime, chunk_type, raw_bytes)``. Raises ValueError for a
+    Returns ``None`` when ``name`` is not a bare filename or no agent is bound
+    to the invocation, so the caller keeps its plain "File not found". Raises
+    ValueError when the agent has no such upload, listing what it does have so
+    the model can retry with the right name.
+    """
+    from apowerb.artifacts.agent_uploads import is_bare_filename, read_agent_upload
+    from apowerb.core.invocation_context import get_root_agent_id
+
+    root = get_root_agent_id()
+    if not is_bare_filename(name) or not root.isdigit():
+        return None
+
+    folder = f"agent{root}"
+    content, available = read_agent_upload(folder, name)
+    if content is None:
+        listing = f" Uploaded files: {', '.join(available)}." if available else ""
+        raise ValueError(f"File not found: {name} in {folder}.{listing}")
+    return content
+
+
+def _read_supported_file(source: str) -> tuple[str, str, bytes]:
+    """Read a local file or an upload, validating it exists and is supported.
+
+    ``source`` is a path on disk or the bare name of a file uploaded to the
+    agent. Returns ``(mime, chunk_type, raw_bytes)``. Raises ValueError for a
     missing or unsupported file so the caller can report it as a fatal error.
     """
-    if not os.path.isfile(source):
-        raise ValueError(
-            f"File not found: {source}. Provide a readable file path or an "
-            f"http(s) URL."
-        )
     ext = Path(source).suffix.lower()
     if ext not in _DOC_TYPES:
+        if not os.path.isfile(source):
+            raise ValueError(
+                f"File not found: {source}. Provide a readable file path or an "
+                f"http(s) URL."
+            )
         raise ValueError(
             f"Unsupported file type '{ext}'. Supported: {_SUPPORTED_EXTS}."
         )
     mime, chunk_type = _DOC_TYPES[ext]
-    with open(source, "rb") as fh:
-        return mime, chunk_type, fh.read()
+    if os.path.isfile(source):
+        with open(source, "rb") as fh:
+            return mime, chunk_type, fh.read()
+    data = _read_uploaded_file(source)
+    if data is None:
+        raise ValueError(
+            f"File not found: {source}. Provide a readable file path or an "
+            f"http(s) URL."
+        )
+    return mime, chunk_type, data
 
 
 def _build_document_chunk(source: str) -> dict:
@@ -308,8 +344,9 @@ def tool_ocr_document(
 
     Args:
         source (str): What to OCR. Either an ``http(s)`` URL (the provider fetches
-            it) or a path to a local file. Supported file types: PDF, PPTX, DOCX,
-            PNG, JPG/JPEG, AVIF.
+            it), the name of a file the user uploaded (e.g. "cv.pdf", exactly as
+            listed in [Uploaded files: …]), or a path to a local file. Supported
+            file types: PDF, PPTX, DOCX, PNG, JPG/JPEG, AVIF.
         provider (str): Which OCR provider to use. Options: "auto" (tries available
             providers in order), "mistral" or "azure". Default: "auto".
         include_images (bool): When true, include base64-encoded image crops that
