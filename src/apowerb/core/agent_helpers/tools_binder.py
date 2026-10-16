@@ -143,7 +143,7 @@ def bind_pdf_first_page(agent_name: str, tools_funcs: list) -> list:
     return tools_funcs
 
 
-def bind_pdf_to_images(agent_name: str, tools_funcs: list) -> list:
+def bind_pdf_to_images(agent_name: str, tools_funcs: list, add: bool = True) -> list:
     """Attach or replace ``tool_pdf_to_images`` for the given agent.
 
     Mirrors the pattern used by ``bind_read_uploaded_file``: the placeholder
@@ -164,6 +164,8 @@ def bind_pdf_to_images(agent_name: str, tools_funcs: list) -> list:
             replaced = True
             break
     if not replaced:
+        if not add:  # le gabarit ne veut pas de l'ajout automatique
+            return tools_funcs
         tools_funcs.append(_make_pdf_to_images(agent_name))
     logger.info(f"[TO_AGENT] pdf_to_images bound to folder {agent_name}")
     return tools_funcs
