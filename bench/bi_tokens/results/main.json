@@ -1,8 +1,8 @@
 {
  "meta": {
   "label": "main",
-  "git_sha": "36ef99e",
-  "date": "2026-10-16T08:37Z",
+  "git_sha": "6a55960",
+  "date": "2026-10-16T09:01Z",
   "model": "gemini/gemini-2.5-flash"
  },
  "scenarios": {
@@ -10,6 +10,7 @@
    "description": "Tableau de bord créé depuis un CSV joint (gabarit ecommerce)",
    "source": "DEV 14/10, enregistré",
    "estimate": false,
+   "known_failure": null,
    "turns": 1,
    "calls": [
     {
@@ -122,6 +123,7 @@
    "description": "Mini-chat du tableau : la question ROAS puis une relance sur le CA hebdomadaire",
    "source": "question DEV 14/10 + relance construite sur les mêmes données",
    "estimate": false,
+   "known_failure": null,
    "turns": 2,
    "calls": [
     {
@@ -246,6 +248,7 @@
    "description": "Prévision du CA mensuel à 3 mois depuis le CSV joint (coup d'œil à l'en-tête, tableau de prévision, widget)",
    "source": "synthétique : CSV de la démo régénéré (13 554 lignes, graine fixe), réponse de prévision construite",
    "estimate": false,
+   "known_failure": null,
    "turns": 1,
    "calls": [
     {
@@ -345,10 +348,99 @@
     ]
    }
   },
+  "main_chat_spec": {
+   "description": "Chat principal (pas le mini-chat) : « sur mon tableau Store Performance, quel canal a le meilleur ROAS ? ». L'agent lit le tableau spec v2 avec tool_get_dashboard_data, puis le ROAS de chaque canal",
+   "source": "DEV 16/10 08:36Z (BI Assistant, cœur 0.2.82) : tool_get_dashboard_data a rendu un tableau vide et l'agent a répondu qu'il n'avait pas de données ; appels et réponse attendus construits sur les données de la démo",
+   "estimate": false,
+   "known_failure": "tool_get_dashboard_data ignore les composants spec v2 (comp.visual) : corrigé par la branche fix/get-dashboard-data-spec-v2 ; retirer ce champ quand elle est mergée",
+   "turns": 1,
+   "calls": [
+    {
+     "turn": 1,
+     "system": 11191,
+     "tools": 65286,
+     "history": 115,
+     "tokens": 20641,
+     "n_tools": 44,
+     "measured": null
+    },
+    {
+     "turn": 1,
+     "system": 11191,
+     "tools": 65286,
+     "history": 548,
+     "tokens": 20813,
+     "n_tools": 44,
+     "measured": null
+    },
+    {
+     "turn": 1,
+     "system": 11191,
+     "tools": 65286,
+     "history": 4258,
+     "tokens": 22279,
+     "n_tools": 44,
+     "measured": null
+    }
+   ],
+   "tokens": 63733,
+   "chars": 234352,
+   "first_call_tokens": 20641,
+   "n_tools": 44,
+   "measured": null,
+   "quality": {
+    "ok": false,
+    "checks": [
+     {
+      "check": "declared",
+      "call": 1,
+      "ok": true,
+      "detail": []
+     },
+     {
+      "check": "declared",
+      "call": 2,
+      "ok": true,
+      "detail": []
+     },
+     {
+      "check": "facts",
+      "call": 2,
+      "ok": false,
+      "detail": [
+       "Revenue by channel",
+       "ROAS[^{}]{0,60}5\\.3"
+      ]
+     },
+     {
+      "check": "declared",
+      "call": 3,
+      "ok": true,
+      "detail": []
+     },
+     {
+      "check": "facts",
+      "call": 3,
+      "ok": true,
+      "detail": []
+     },
+     {
+      "check": "grounded",
+      "call": 3,
+      "ok": true,
+      "detail": []
+     }
+    ],
+    "undeclared_in_instruction": [
+     "tool_text_to_sql"
+    ]
+   }
+  },
   "multi_turn": {
    "description": "Une même conversation : création depuis le CSV, question ROAS, relance hebdomadaire",
    "source": "tours DEV 14/10 enchaînés + relance construite",
    "estimate": false,
+   "known_failure": null,
    "turns": 3,
    "calls": [
     {
@@ -560,6 +652,7 @@
    "description": "« Quel canal a le meilleur ROAS ? » depuis le mini-chat du tableau (1 + 4 requêtes)",
    "source": "DEV 14/10, enregistré",
    "estimate": false,
+   "known_failure": null,
    "turns": 1,
    "calls": [
     {
@@ -642,6 +735,7 @@
    "description": "La même question si le modèle ne demande que le KPI ROAS par canal (component_ids)",
    "source": "variante scriptée de question",
    "estimate": true,
+   "known_failure": null,
    "turns": 1,
    "calls": [
     {

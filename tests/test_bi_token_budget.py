@@ -18,11 +18,14 @@ BENCH = Path(__file__).resolve().parents[1] / "bench" / "bi_tokens"
 
 @pytest.fixture(scope="module")
 def replay():
+    import apowerb.bi.db_stores as db_stores
     import apowerb.tools_store.portfolio.bi_dashboard_tools as t
+    import apowerb.tools_store.portfolio.business_intelligence as bi
     from apowerb.core.agent_helpers import agent_utils, extras_loader
 
     saved = [(mod, name, getattr(mod, name)) for mod, name in (
         (t, "_dashboard_store"), (t, "_compute"), (t, "_agent_owner"), (t, "_run_tool"),
+        (bi, "_get_session"), (bi, "_agent_owner"), (db_stores, "DatabaseDashboardStore"),
         (agent_utils, "get_agent_details"), (extras_loader, "_inject_tool_config_env"),
     )]
     sys.path.insert(0, str(BENCH))
@@ -69,10 +72,14 @@ def test_every_bench_scenario_keeps_its_quality_checks_green(replay):
     liens de chaque réponse finale encore visibles par le modèle."""
     module, _ = replay
     report = module.run_all(estimates=True)
-    assert {"creation", "question", "dashboard_chat", "multi_turn", "forecast"} <= set(report)
+    assert {"creation", "question", "dashboard_chat", "multi_turn", "forecast", "main_chat_spec"} <= set(report)
     failed = {name: [c for c in s["quality"]["checks"] if not c["ok"]]
-              for name, s in report.items() if not s["quality"]["ok"]}
+              for name, s in report.items() if not s["quality"]["ok"] and not s["known_failure"]}
     assert failed == {}
+    # Un échec connu doit rester un échec : quand le correctif arrive, ce test
+    # le signale et le champ known_failure du scénario est à retirer.
+    still_failing = {name: s["quality"]["ok"] for name, s in report.items() if s["known_failure"]}
+    assert still_failing == {"main_chat_spec": False}
 
 
 def test_group_by_gives_the_same_roas_as_one_query_per_channel(replay):

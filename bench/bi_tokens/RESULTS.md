@@ -12,6 +12,7 @@ Tokens d'entrée (tokenizer Gemini local, somme sur les appels du scénario), mo
 | multi_turn | 3 | 10 | 36 | 17 070 | 286 522 | – |
 | question | 1 | 3 | 36 | 17 113 | 75 227 | 71 617 |
 | question_targeted *(estim.)* | 1 | 3 | 36 | 17 113 | 61 315 | 71 617 |
+| main_chat_spec *(échec connu)* | 1 | 3 | 44 | 20 641 | 63 733 | – |
 
 ## D1 — outils de chat inutiles retirés des gabarits BI
 
