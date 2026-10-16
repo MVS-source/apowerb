@@ -72,3 +72,39 @@ Avant `d5` (4e4fe32) → après `d2` (385abd4)
 | question_targeted *(estim.)* | 3→3 | 26→26 | 14 031→14 031 | 52 069 | 52 069 | +0.0 % | ✅ |
 
 Contre-preuve : compacter aussi le tour en cours fait échouer facts/grounded sur 4 scénarios.
+
+## Consigne — bloc « Dashboard context » seulement avec ses outils
+
+Avant `d2` (385abd4) → après `prompt` (b836389)
+
+| Scénario | Appels | Outils | 1er appel (tok) | Total avant | Total après | Δ | Qualité |
+|---|---|---|---|---|---|---|---|
+| creation | 5→5 | 26→26 | 13 988→13 598 | 88 875 | 86 925 | -2.2 % | ✅ |
+| dashboard_chat | 5→5 | 26→26 | 14 031→13 641 | 100 271 | 98 321 | -1.9 % | ✅ |
+| forecast | 4→4 | 26→26 | 13 978→13 588 | 61 452 | 59 892 | -2.5 % | ✅ |
+| multi_turn | 10→10 | 26→26 | 13 988→13 598 | 200 883 | 196 983 | -1.9 % | ✅ |
+| question | 3→3 | 26→26 | 14 031→13 641 | 65 981 | 64 811 | -1.8 % | ✅ |
+| question_grouped *(estim.)* | 3→3 | 26→26 | 14 031→13 641 | 51 094 | 49 924 | -2.3 % | ✅ |
+| question_targeted *(estim.)* | 3→3 | 26→26 | 14 031→13 641 | 52 069 | 50 899 | -2.2 % | ✅ |
+
+Outils cités par la consigne mais non déclarés : 5 → 0.
+
+## Cumul main → tous les leviers (D1 + D4 + D5 + D2 + consigne)
+
+Avant `main` (36ef99e) → après `prompt` (b836389)
+
+| Scénario | Appels | Outils | 1er appel (tok) | Total avant | Total après | Δ | Qualité |
+|---|---|---|---|---|---|---|---|
+| creation | 5→5 | 36→26 | 17 070→13 598 | 104 285 | 86 925 | -16.6 % | ✅ |
+| dashboard_chat | 5→5 | 36→26 | 17 113→13 641 | 151 177 | 98 321 | -35.0 % | ✅ |
+| forecast | 4→4 | 36→26 | 17 060→13 588 | 108 775 | 59 892 | -44.9 % | ✅ |
+| multi_turn | 10→10 | 36→26 | 17 070→13 598 | 286 522 | 196 983 | -31.3 % | ✅ |
+| question | 3→3 | 36→26 | 17 113→13 641 | 75 227 | 64 811 | -13.8 % | ✅ |
+| question_grouped *(estim.)* | 3 | 26 | 13 641 | – | 49 924 | nouveau | ✅ |
+| question_targeted *(estim.)* | 3→3 | 36→26 | 17 113→13 641 | 61 315 | 50 899 | -17.0 % | ✅ |
+
+## D3 — cache Gemini (analyse, rien de changé)
+
+- La jauge client somme `llm_usage.total_tokens` (`usage_quota.py`, `func.sum(LlmUsage.total_tokens)`) ; `total_tokens` vient de `total_token_count` de Gemini, qui inclut les tokens servis depuis le cache (`cached_content_token_count` en est une partie). Le cache baisse la facture Gemini (tokens en cache facturés ~25 %), **pas** la jauge.
+- Préfixe stable par appel après les leviers : consigne + déclarations ≈ 13,6k tokens, identique d'un appel à l'autre d'une session : candidat au cache implicite (déjà actif chez Gemini, aléatoire en DEV le 15/10) ou explicite (`gemini_prompt_cache.py`, éteint par défaut).
+- Pour que la jauge en profite, il faudrait pondérer le cache dans le quota, p. ex. `total − 0,75 × cached`. ESTIMATION sur `multi_turn` (10 appels) si tout le préfixe est servi par le cache : 196 983 → ~95k comptés. Décision produit/tarif, à prendre par Elom ; à mesurer avec `dev_usage.py` (colonne `cached`) avant.

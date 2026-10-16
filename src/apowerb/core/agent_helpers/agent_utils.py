@@ -55,6 +55,7 @@ from apowerb.core.agent_helpers.extras_loader import (
     inject_bi_dashboard_tools,
 )
 from apowerb.core.agent_helpers.chat_action_tools import (
+    DASHBOARD_CONTEXT_INSTRUCTION,
     INTERACTIVE_UI_INSTRUCTION,
     confirm_destructive,
     embed_chart,
@@ -861,6 +862,8 @@ def to_agent(agent_name: str) -> LlmAgent:
         # to call request_user_input instead of emitting the structured output.
         if _should_inject_chat_action_tools(agent_details):
             instruction = (instruction or "") + INTERACTIVE_UI_INSTRUCTION
+            if _should_inject_dashboard_tool():
+                instruction += DASHBOARD_CONTEXT_INSTRUCTION
 
         # Feature: Output Schema - inject output format instruction
         instruction = apply_output_schema(
