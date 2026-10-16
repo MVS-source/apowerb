@@ -134,7 +134,7 @@ def _make_read_uploaded_file(folder_name: str, tabular_preview_rows: int = 0):
                     "message": "PDF file contains no extractable text (may be scanned/image-based)",
                 }
 
-            # Images: return metadata + base64 (if small enough)
+            # Images: attached to the result (see apowerb.core.tool_images)
             if ext in _IMAGE_EXTENSIONS:
                 return _read_image(file_path, file_size, filename)
 
