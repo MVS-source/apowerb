@@ -9,7 +9,7 @@ import os
 from apowerb.configs.th2logger import setup_logging
 from apowerb.configs.paths import uploads_dir
 from apowerb.configs.settings import get_settings
-from apowerb.artifacts.file_lookup import available_filenames, read_file_bytes
+from apowerb.artifacts.file_lookup import read_file_and_names
 from apowerb.core.agent_helpers.text_utils import _truncate_content
 from apowerb.core.agent_helpers.pdf_writer import _extract_pdf_text
 from apowerb.core.agent_helpers.file_readers import (
@@ -202,13 +202,13 @@ def _make_read_uploaded_file(folder_name: str, tabular_preview_rows: int = 0):
         else:
             logger.debug("[READ_FILE] S3 read of %s for %s", filename, folder_name)
             import tempfile
-            content_bytes = read_file_bytes(folder_name, filename)
+            content_bytes, available = read_file_and_names(folder_name, filename)
 
             if content_bytes is None:
                 return {
                     "status": "error",
                     "message": f"File '{filename}' not found in {folder_name}",
-                    "available_files": available_filenames(folder_name),
+                    "available_files": available,
                 }
 
             file_size = len(content_bytes)
