@@ -1,7 +1,6 @@
 {
  "description": "Chat principal (pas le mini-chat) : « sur mon tableau Store Performance, quel canal a le meilleur ROAS ? ». L'agent lit le tableau spec v2 avec tool_get_dashboard_data, puis le ROAS de chaque canal",
  "source": "DEV 16/10 08:36Z (BI Assistant, cœur 0.2.82) : tool_get_dashboard_data a rendu un tableau vide et l'agent a répondu qu'il n'avait pas de données ; appels et réponse attendus construits sur les données de la démo",
- "known_failure": "tool_get_dashboard_data ignore les composants spec v2 (comp.visual) : corrigé par la branche fix/get-dashboard-data-spec-v2 ; retirer ce champ quand elle est mergée",
  "env": {
   "AGENT_DASHBOARD_ID": "e3ca56c3-3fc2-4e86-93ba-f51b5b8dd33d"
  },
