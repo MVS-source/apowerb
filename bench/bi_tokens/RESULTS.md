@@ -71,3 +71,19 @@ Avant `d5` (4e4fe32) → après `d2` (385abd4)
 | question_targeted *(estim.)* | 3→3 | 26→26 | 14 031→14 031 | 52 069 | 52 069 | +0.0 % | ✅ |
 
 Contre-preuve : compacter aussi le tour en cours fait échouer facts/grounded sur 4 scénarios.
+
+## Consigne — bloc « Dashboard context » seulement avec ses outils
+
+Avant `d2` (385abd4) → après `prompt` (b836389)
+
+| Scénario | Appels | Outils | 1er appel (tok) | Total avant | Total après | Δ | Qualité |
+|---|---|---|---|---|---|---|---|
+| creation | 5→5 | 26→26 | 13 988→13 598 | 88 875 | 86 925 | -2.2 % | ✅ |
+| dashboard_chat | 5→5 | 26→26 | 14 031→13 641 | 100 271 | 98 321 | -1.9 % | ✅ |
+| forecast | 4→4 | 26→26 | 13 978→13 588 | 61 452 | 59 892 | -2.5 % | ✅ |
+| multi_turn | 10→10 | 26→26 | 13 988→13 598 | 200 883 | 196 983 | -1.9 % | ✅ |
+| question | 3→3 | 26→26 | 14 031→13 641 | 65 981 | 64 811 | -1.8 % | ✅ |
+| question_grouped *(estim.)* | 3→3 | 26→26 | 14 031→13 641 | 51 094 | 49 924 | -2.3 % | ✅ |
+| question_targeted *(estim.)* | 3→3 | 26→26 | 14 031→13 641 | 52 069 | 50 899 | -2.2 % | ✅ |
+
+Outils cités par la consigne mais non déclarés : 5 → 0.
