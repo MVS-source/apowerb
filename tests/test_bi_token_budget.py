@@ -110,3 +110,18 @@ def test_group_by_misuse_is_explained(replay, kwargs, error):
 
     res = t.tool_bi_query_dashboard(module._query_fixture()[None]["dashboard_id"], **kwargs)
     assert res["success"] is False and error in res["error"]
+
+def test_compare_does_not_fail_on_a_known_failure(replay):
+    module, _ = replay
+
+    def scenario(ok, known=None):
+        return {"estimate": False, "known_failure": known, "calls": [{}], "n_tools": 1,
+                "first_call_tokens": 1, "tokens": 10,
+                "quality": {"ok": ok, "undeclared_in_instruction": []}}
+
+    before = {"meta": {}, "scenarios": {"a": scenario(True)}}
+    known = {"meta": {}, "scenarios": {"a": scenario(True), "b": scenario(False, "défaut connu")}}
+    broken = {"meta": {}, "scenarios": {"a": scenario(False)}}
+    table, ok = module.compare(before, known)
+    assert ok and "❌ connu" in table
+    assert module.compare(before, broken)[1] is False
