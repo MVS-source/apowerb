@@ -13,6 +13,7 @@ import logging
 import re
 
 from apowerb.core.agent_helpers.agent_utils import load_agent_model_params
+from apowerb.helpers.model_names import openai_compat_model_name
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +112,7 @@ async def generate_session_title(message: str, agent_id=None) -> str:
 
     # Routage provider (aligné sur prospection_draft).
     if base:
-        kwargs["model"] = model if model.startswith("openai/") else "openai/" + model.split("/", 1)[-1]
+        kwargs["model"] = openai_compat_model_name(model)
         kwargs["api_base"] = base
         if key:
             kwargs["api_key"] = key

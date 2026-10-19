@@ -18,6 +18,7 @@ from apowerb.core.agent_helpers.default_llm import (
 )
 from apowerb.core.agent_helpers.reasoning_strip import CleaningLiteLLMClient
 from apowerb.helpers.encryptor import decrypt_value_in_dict
+from apowerb.helpers.model_names import openai_compat_model_name
 
 
 logger = setup_logging(__name__)
@@ -74,12 +75,7 @@ def build_litellm_model(agent_details: dict, temperature: float | None) -> LiteL
         )
 
     if model_api_base:
-        _model_name = agent_details["agent_model"]
-        # When using a custom OpenAI-compat api_base, force the openai/ provider prefix
-        # so litellm uses the OpenAI tool-calling path instead of the Mistral SDK path.
-        # Azure AI Foundry has its own LiteLLM provider and must keep its prefix.
-        if not _model_name.startswith(("openai/", "azure_ai/")):
-            _model_name = "openai/" + _model_name.split("/", 1)[-1]
+        _model_name = openai_compat_model_name(agent_details["agent_model"])
         _endpoint_kwargs = {
             "api_base": model_api_base,
             "api_key": model_api_key,
