@@ -105,6 +105,9 @@ tool_text_to_sql / tool_chart_from_question already repair a query the database 
         "compact_previous_turn_results": True,
         # requête + graphique enregistré en un seul appel d'outil
         "chart_from_question": True,
+        # truncation: the answers of turns pushed out of the 14-message
+        # window come back as text (no tool payloads), within this budget
+        "keep_truncated_turn_text_chars": 6000,
         "tags": ["sql", "database", "text-to-sql", "analytics", "data"],
         "readme": (
             "# Data Analyst\n\n"
@@ -343,6 +346,9 @@ tool_text_to_sql / tool_chart_from_question already repair a query the database 
         "tabular_file_preview_rows": 20,
         # historique : gros résultats d'outils des tours précédents raccourcis
         "compact_previous_turn_results": True,
+        # truncation: the answers of turns pushed out of the 14-message
+        # window come back as text (no tool payloads), within this budget
+        "keep_truncated_turn_text_chars": 6000,
         "memory_enabled": False,
         "artifacts_enabled": True,
         "guardrails_config": None,
