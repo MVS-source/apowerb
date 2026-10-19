@@ -18,7 +18,11 @@ from apowerb.core.agent_helpers.default_llm import (
 )
 from apowerb.core.agent_helpers.reasoning_strip import CleaningLiteLLMClient
 from apowerb.helpers.encryptor import decrypt_value_in_dict
-from apowerb.helpers.model_names import openai_compat_model_name
+from apowerb.helpers.model_names import (
+    EDENAI_API_BASE,
+    is_edenai_model,
+    openai_compat_model_name,
+)
 
 
 logger = setup_logging(__name__)
@@ -101,6 +105,13 @@ def build_litellm_model(agent_details: dict, temperature: float | None) -> LiteL
             f"[TO_AGENT] Using default OVH Mistral endpoint: {model_api_base}"
         )
 
+    # Passerelle Eden AI : le prefixe porte l'endpoint par defaut, comme le cas
+    # OVH ci-dessus. Un `model_api_base` pose sur l'agent reste prioritaire, pour
+    # qu'un compte sur une autre region puisse pointer le sien.
+    if not model_api_base and is_edenai_model(agent_details["agent_model"]):
+        model_api_base = EDENAI_API_BASE
+        logger.info(f"[TO_AGENT] Using default Eden AI endpoint: {model_api_base}")
+
     if model_api_base:
         _model_name = openai_compat_model_name(agent_details["agent_model"])
         _endpoint_kwargs = {
@@ -176,6 +187,11 @@ def validate_agent_model(agent_model: str, agent_model_params=None, agent_type: 
                 "serveur : DEFAULT_LLM_MODEL / DEFAULT_LLM_API_KEY ne sont pas "
                 "configures. Choisir un modele et fournir une cle API."
             )
+        return
+    # Passerelle Eden AI : litellm ne connait pas le provider `edenai`, c'est
+    # une sentinelle que le builder resout en posant l'endpoint Eden AI. Sans
+    # cette ligne un agent edenai/ sans URL serait refuse a la creation.
+    if is_edenai_model(agent_model or ""):
         return
     params = agent_model_params or {}
     if isinstance(params, str):
