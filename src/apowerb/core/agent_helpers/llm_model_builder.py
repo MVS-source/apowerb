@@ -18,6 +18,7 @@ from apowerb.core.agent_helpers.default_llm import (
 )
 from apowerb.core.agent_helpers.reasoning_strip import CleaningLiteLLMClient
 from apowerb.helpers.encryptor import decrypt_value_in_dict
+from apowerb.helpers.model_names import openai_compat_model_name
 
 
 logger = setup_logging(__name__)
