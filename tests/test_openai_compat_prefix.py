@@ -72,7 +72,8 @@ async def test_title_generator_keeps_the_azure_ai_prefix(monkeypatch):
     from apowerb.helpers import title_generator
 
     monkeypatch.setattr(
-        title_generator, "_resolve_model_creds", lambda _agent_id: (AZURE, "k", BASE)
+        title_generator, "_resolve_model_creds",
+        lambda _agent_id: (AZURE, {"model_api_key": "k", "model_api_base": BASE}),
     )
     captured: dict = {}
     monkeypatch.setattr(litellm, "acompletion", _capture_acompletion(captured))
